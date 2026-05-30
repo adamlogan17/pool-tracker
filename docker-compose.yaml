@@ -1,0 +1,54 @@
+services:
+  db:
+    image: mongodb/mongodb-atlas-local:8.2.5
+    hostname: mongodb
+    container_name: mongodb
+    environment:
+      MONGODB_INITDB_ROOT_USERNAME: user
+      MONGODB_INITDB_ROOT_PASSWORD: pass
+    ports:
+      - 27017:27017
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d
+      - db:/data/db
+      - configdb:/data/configdb
+      - mongot:/data/mongot
+    networks:
+      - pool_tracker_network
+
+  # The username and password is admin:pass
+  mongo-gui:
+    image: mongo-express:1.0.2-20-alpine3.19
+    container_name: mongo-express
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: db
+      ME_CONFIG_MONGODB_ADMINUSERNAME: user
+      ME_CONFIG_MONGODB_ADMINPASSWORD: pass
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+    depends_on:
+      - db
+    networks:
+      - pool_tracker_network
+  pool-tracker:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: elo-rating
+    environment:
+      MONGO_DB: db
+    depends_on:
+      - db
+    networks:
+      - pool_tracker_network
+
+volumes:
+  db:
+  configdb:
+  mongot:
+
+networks:
+  pool_tracker_network:
+    driver: bridge
