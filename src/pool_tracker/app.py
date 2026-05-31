@@ -1,6 +1,7 @@
-from flask import Flask
+from flask import Flask, jsonify
 from mongoengine import connect
 import os
+from pool_tracker.Player import Player
 
 app = Flask(__name__)
 
@@ -9,7 +10,12 @@ connect(host=host, username="user", password="pass", authentication_source='admi
 
 @app.route('/player/<string:name>', methods=['GET'])
 def get_player(name):
-    return "Hello World"
+    player = Player.objects(name=name).first()
+    if not player:
+        return jsonify({'error': 'Player not found'}), 404
+    return jsonify({
+        'name': player.name
+    })
 
 @app.route('/player/all', methods=['GET'])
 def get_all_players():
@@ -37,7 +43,8 @@ def create_match():
     return 'Hello World'
 
 def launch_server():
-    app.run()
+    DEBUG = os.getenv("DEBUG", False) == "true"
+    app.run(host='0.0.0.0', port=5000, debug=DEBUG)
 
 if __name__ == '__main__':
     launch_server()
