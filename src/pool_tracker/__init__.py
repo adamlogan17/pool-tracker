@@ -5,12 +5,12 @@ from faker import Faker
 from pool_tracker.Player import Player
 from pool_tracker.Match import Match
 
-host = f"mongodb://{os.getenv('MONGO_DB', 'leaderboard')}"
-print(host)
-
-connect(host=host, username="user", password="pass", authentication_source='admin')
 
 def main() -> None:
+    db_name = os.getenv('APP_DB', 'eloTracker')
+    host = f"mongodb://{os.getenv('MONGO_DB', 'leaderboard')}"
+    connect(host=host, username="user", password="pass", authentication_source='admin', db=db_name)
+
     print("Hello from pool-tracker!")
     fake = Faker('en_GB')
     name = fake.first_name()

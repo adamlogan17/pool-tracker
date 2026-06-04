@@ -7,8 +7,10 @@ from mongoengine.errors import NotUniqueError
 
 app = Flask(__name__)
 
+# TODO: Maybe move the connection code into __init__.py (maybe have an env var that checks if a mongo_db is given)?
+db_name = os.getenv('APP_DB', 'eloTracker')
 host = f"mongodb://{os.getenv('MONGO_DB', 'leaderboard')}"
-connect(host=host, username="user", password="pass", authentication_source='admin')
+connect(host=host, username="user", password="pass", authentication_source='admin', db=db_name)
 
 @app.route('/player/<string:name>', methods=['GET'])
 def get_player(name):
