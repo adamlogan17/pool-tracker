@@ -11,4 +11,4 @@ COPY src ./src
 
 RUN uv sync --frozen
 
-ENTRYPOINT [ "uv", "run", "pool-tracker" ]
+ENTRYPOINT [ "uv", "run", "pool-tracker-server" ]
