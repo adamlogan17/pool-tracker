@@ -11,14 +11,23 @@
         "bot_user": {
             "display_name": "BoltApp",
             "always_online": true
-        }
+        },
+        "slash_commands": [
+            {
+                "command": "/add-player",
+                "description": "Adds the user to the pool-tracker db",
+                "usage_hint": "/add-player",
+                "should_escape": true
+            }
+        ]
     },
     "oauth_config": {
         "scopes": {
             "bot": [
                 "channels:history",
                 "chat:write",
-                "im:history"
+                "im:history",
+                "commands"
             ]
         },
         "pkce_enabled": false
