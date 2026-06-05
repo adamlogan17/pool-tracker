@@ -4,6 +4,15 @@ from mongoengine import Document, IntField, ReferenceField, DateTimeField, signa
 from pool_tracker.elo import update_elo
 from pool_tracker.Player import Player
 
+class SamePlayerMatchException(Exception):
+    message = "A player cannot play themselves."
+
+    def __init__(self):
+        super().__init__(self.message)
+
+    def __str__(self):
+        return f"Error: {self.message}"
+
 class Match(Document):
     winning_player = ReferenceField(Player, required=True)
     losing_player = ReferenceField(Player, required=True)
@@ -15,6 +24,9 @@ class Match(Document):
 
     @classmethod
     def pre_save(cls, sender, document, **kwargs):
+        if document.winning_player == document.losing_player:
+            # TODO: Make this a custom error
+            raise SamePlayerMatchException
         document.winning_player_elo_before = document.winning_player.elo
         document.losing_player_elo_before = document.losing_player.elo
         update_elo(document.winning_player, document.losing_player)

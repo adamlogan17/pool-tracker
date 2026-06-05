@@ -1,16 +1,13 @@
 from flask import Flask, jsonify, request
-from mongoengine import connect
 import os
 from pool_tracker.Player import Player
-from pool_tracker.Match import Match
+from pool_tracker.Match import Match, SamePlayerMatchException
 from mongoengine.errors import NotUniqueError
+from pool_tracker.utils import connect_db, get_all_players, inactivate_player, get_match_by_players, get_all_matches
 
 app = Flask(__name__)
 
-# TODO: Maybe move the connection code into __init__.py (maybe have an env var that checks if a mongo_db is given)?
-db_name = os.getenv('APP_DB', 'eloTracker')
-host = f"mongodb://{os.getenv('MONGO_DB', 'leaderboard')}"
-connect(host=host, username="user", password="pass", authentication_source='admin', db=db_name)
+connect_db()
 
 @app.route('/player/<string:name>', methods=['GET'])
 def get_player(name):
@@ -20,11 +17,9 @@ def get_player(name):
     return jsonify(player.to_dict()), 200
 
 @app.route('/player/all', methods=['GET'])
-def get_all_players():
-    players = Player.objects
-    all_players = [player.to_dict() for player in players]
+def request_get_all_players():
     return jsonify({
-        'players': all_players
+        'players': get_all_players()
     }), 200
 
 @app.route('/player', methods=['POST'])
@@ -43,33 +38,25 @@ def create_player():
     return jsonify(new_player.to_dict()), 200
 
 @app.route('/player/<string:name>', methods=['DELETE'])
-def inactivate_player(name):
-    player = Player.objects(name=name).first()
-    if not player:
+def request_inactivate_player(name):
+    try:
+        player = inactivate_player(name)
+    except Exception as e:
         return jsonify({
-            "error": "Player does not exist"
-        }), 400
-    player.active = False
-    player.save()
+            'error': 'player not found'
+        }), 404
     return jsonify(player.to_dict()), 200
 
 @app.route('/match/<string:player1>/<string:player2>', methods=['GET'])
-def get_match_by_players(player1, player2):
-    player1_obj = Player.objects(name=player1).first()
-    player2_obj = Player.objects(name=player2).first()
-    player1_win = Match.objects(winning_player=player1_obj, losing_player=player2_obj)
-    player2_win = Match.objects(winning_player=player2_obj, losing_player=player1_obj)
-    matches = [match.to_dict() for match in player1_win] +[match.to_dict() for match in player2_win]
+def request_get_match_by_players(player1, player2):
     return jsonify({
-        'matches': matches
+        'matches': get_match_by_players(player1, player2)
     }), 200
 
 @app.route('/match/all', methods=['GET'])
-def get_all_matches():
-    matches = Match.objects.order_by('match_time')
-    all_matches = [match.to_dict() for match in matches]
+def request_get_all_matches():
     return jsonify({
-        'matches': all_matches
+        'matches': get_all_matches()
     }), 200
 
 @app.route('/match', methods=['POST'])
@@ -84,16 +71,18 @@ def create_match():
         return jsonify({
             "error": "Winning player does not exist."
         }), 400
-    losing_player = Player.objects(name=request_body['loser'], active=True).first()
+    losing_player = Player.objects(name=request_body['loser'], active=True).first() 
     if not losing_player:
         return jsonify({
             "error": "Losing player does not exist"
         }), 400
-    if winning_player == losing_player:
+    match = None
+    try:
+        match = Match(winning_player=winning_player, losing_player=losing_player).save()
+    except SamePlayerMatchException as e:
         return jsonify({
-            "error": "Cannot have a match of the same player"
-        }), 400
-    match = Match(winning_player=winning_player, losing_player=losing_player).save()
+            'error': str(e)
+        }), 500
     return jsonify(match.to_dict()), 200
 
 def launch_server():
