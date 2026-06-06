@@ -18,6 +18,19 @@ def inactivate_player(name):
     player.save()
     return player
 
+def get_player_info(name):
+    player = Player.objects(name=name, active=True).first()
+    if not player:
+        return None
+    won_matches = Match.objects(winning_player=player)
+    lost_matches = Match.objects(losing_player=player)
+    
+    return {
+        **player.to_dict(),
+        'won_matches': won_matches,
+        'lost_matches': lost_matches
+    }
+
 def get_match_by_players(player1, player2):
     player1_obj = Player.objects(name=player1).first()
     player2_obj = Player.objects(name=player2).first()
