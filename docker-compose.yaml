@@ -32,11 +32,12 @@ services:
       - db
     networks:
       - pool_tracker_network
-  pool-tracker:
+  pool-tracker-server:
     build:
       context: .
       dockerfile: ./Dockerfile
     container_name: elo-rating
+    entrypoint: ["uv", "run", "pool-tracker-server"]
     ports:
       - 5001:5000
     environment:
@@ -49,6 +50,20 @@ services:
       - pool_tracker_network
     volumes:
       - ./src:/app/src
+  pool-tracker-slack-bot:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: slack-bot
+    entrypoint: ["uv", "run", "pool-tacker-slack-bot"]
+    env_file:
+      - ./.env
+    networks:
+      - pool_tracker_network
+    volumes:
+      - ./src:/app/src
+    depends_on:
+      - db
 
 volumes:
   db:
