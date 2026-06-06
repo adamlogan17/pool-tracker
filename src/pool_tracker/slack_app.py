@@ -3,7 +3,7 @@ from mongoengine.errors import NotUniqueError
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from pool_tracker.Player import Player
-from pool_tracker.utils import connect_db
+from pool_tracker.utils import connect_db, inactivate_player
 import logging
 
 
@@ -46,7 +46,7 @@ def action_button_click(body, ack, say):
     say(f"<@{body['user']['id']}> clicked the button")
 
 @app.command("/add-me")
-def add_player_to_db(ack, say, command):
+def add_player(ack, say, command):
     ack()
     name = command['user_name']
     player = None
@@ -54,7 +54,17 @@ def add_player_to_db(ack, say, command):
         player = Player(name=name).save()
     except NotUniqueError:
         player = Player.objects(name=name).first()
+        player.active = True
+        player.save()
     message = f"Your user name is {player.name} and your current score is {player.elo}"
+    say(message)
+
+@app.command("/delete-me")
+def inactivate_player_slack(ack, say, command):
+    ack()
+    name = command['user_name']
+    player = inactivate_player(name)
+    message = f"Successfully made {player.name} inactive"
     say(message)
 
 def start_app():

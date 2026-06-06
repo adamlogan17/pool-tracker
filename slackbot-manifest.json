@@ -14,10 +14,14 @@
         },
         "slash_commands": [
             {
-                "command": "/add-player",
-                "description": "Adds the user to the pool-tracker db",
-                "usage_hint": "/add-player",
+                "command": "/add-me",
+                "description": "Adds the current user to the pool-tacker DB",
                 "should_escape": true
+            },
+            {
+                "command": "/delete-me",
+                "description": "Makes the current user inactive",
+                "should_escape": false
             }
         ]
     },
