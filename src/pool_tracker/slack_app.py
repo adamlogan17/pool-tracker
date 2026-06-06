@@ -1,15 +1,23 @@
 import os
-
+from mongoengine.errors import NotUniqueError
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
+from pool_tracker.Player import Player
+from pool_tracker.utils import connect_db
+import logging
 
-# This sample slack application uses SocketMode
-# For the companion getting started setup guide,
-# see: https://docs.slack.dev/tools/bolt-python/getting-started
 
-# Initializes your app with your bot token
+logger = logging.getLogger(__name__)
+
+if not os.environ.get("SLACK_BOT_TOKEN", None):
+    raise Exception(f"no token: {os.environ.get("SLACK_BOT_TOKEN")}")
+
+if not os.environ.get("SLACK_APP_TOKEN", None):
+    raise Exception(f"no token, app: {os.environ.get("SLACK_BOT_TOKEN")}")
+
 app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
+connect_db()
 
 # Listens to incoming messages that contain "hello"
 @app.message("hello")
@@ -37,8 +45,22 @@ def action_button_click(body, ack, say):
     ack()
     say(f"<@{body['user']['id']}> clicked the button")
 
+@app.command("/add-me")
+def add_player_to_db(ack, say, command):
+    ack()
+    name = command['user_name']
+    player = None
+    try:
+        player = Player(name=name).save()
+    except NotUniqueError:
+        player = Player.objects(name=name).first()
+    message = f"Your user name is {player.name} and your current score is {player.elo}"
+    say(message)
+
 def start_app():
-    SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
+    logger.info(f"slack bot token: {os.environ.get("SLACK_BOT_TOKEN")}")
+    logger.info(f"slack bot token: {os.environ.get("SLACK_APP_TOKEN")}")
+    SocketModeHandler(app, os.environ.get("SLACK_APP_TOKEN")).start()
 
 # Start your app
 if __name__ == "__main__":

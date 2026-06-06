@@ -58,6 +58,9 @@ services:
     entrypoint: ["uv", "run", "pool-tacker-slack-bot"]
     env_file:
       - ./.env
+    environment:
+      APP_DB: 'poolTracker'
+      MONGO_DB: db
     networks:
       - pool_tracker_network
     volumes:
