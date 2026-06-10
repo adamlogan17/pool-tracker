@@ -3,7 +3,7 @@ from mongoengine.errors import NotUniqueError
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from pool_tracker.Player import Player
-from pool_tracker.utils import connect_db, inactivate_player
+from pool_tracker.utils import connect_db, inactivate_player, get_player_info
 import logging
 
 
@@ -18,6 +18,8 @@ if not os.environ.get("SLACK_APP_TOKEN", None):
 app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
 connect_db()
+
+add_command = "/add-me"
 
 # Listens to incoming messages that contain "hello"
 @app.message("hello")
@@ -45,7 +47,7 @@ def action_button_click(body, ack, say):
     ack()
     say(f"<@{body['user']['id']}> clicked the button")
 
-@app.command("/add-me")
+@app.command(add_command)
 def add_player(ack, say, command):
     ack()
     name = command['user_name']
@@ -56,7 +58,7 @@ def add_player(ack, say, command):
         player = Player.objects(name=name).first()
         player.active = True
         player.save()
-    message = f"Your user name is {player.name} and your current score is {player.elo}"
+    message = f"Your user name is <@{player.name}>! and your current score is {player.elo}"
     say(message)
 
 @app.command("/delete-me")
@@ -64,8 +66,66 @@ def inactivate_player_slack(ack, say, command):
     ack()
     name = command['user_name']
     player = inactivate_player(name)
-    message = f"Successfully made {player.name} inactive"
+    message = f"Successfully made <@{player.name}>! inactive"
     say(message)
+
+@app.command("/my-stats")
+def get_player_stats(ack, say, command):
+    ack()
+    name = command['user_name']
+    player_info = get_player_info(name)
+    if not player_info:
+        say(f"You have not yet registered for the pool tracker! Please use {add_command} to activate your account!")
+    else:
+        say(f"{player_info}")
+        say(
+            blocks=[
+                {
+                    "type": "data_table",
+                    "caption": "Stats",
+                    "rows": [
+                        [
+                            {
+                                "type": "raw_text",
+                                "text": "Player"
+                            },
+                            {
+                                "type": "raw_text",
+                                "text": "Rating"
+                            },
+                            {
+                                "type": "raw_text",
+                                "text": "Matches Won"
+                            },
+                            {
+                                "type": "raw_text",
+                                "text": "Matches Lost"
+                            }
+                        ],
+                        [
+                            {
+                                "type": "raw_text",
+                                # Cannot find a way to '@' a user inside a table
+                                "text": f"{player_info['name']}"
+                            },
+                            {
+                                "type": "raw_text",
+                                "text": f"{player_info['elo']}"
+                            },
+                            {
+                                "type": "raw_text",
+                                "text": f"{len(player_info['won_matches'])}"
+                            },
+                            {
+                                "type": "raw_text",
+                                "text": f"{len(player_info['lost_matches'])}"
+                            }
+                        ]
+                    ]
+                }
+            ]
+        )
+
 
 def start_app():
     logger.info(f"slack bot token: {os.environ.get("SLACK_BOT_TOKEN")}")

@@ -27,8 +27,8 @@ def get_player_info(name):
     
     return {
         **player.to_dict(),
-        'won_matches': won_matches,
-        'lost_matches': lost_matches
+        'won_matches': [match.to_dict() for match in won_matches],
+        'lost_matches': [match.to_dict() for match in lost_matches]
     }
 
 def get_match_by_players(player1, player2):
@@ -36,7 +36,7 @@ def get_match_by_players(player1, player2):
     player2_obj = Player.objects(name=player2).first()
     player1_win = Match.objects(winning_player=player1_obj, losing_player=player2_obj)
     player2_win = Match.objects(winning_player=player2_obj, losing_player=player1_obj)
-    matches = [match.to_dict() for match in player1_win] +[match.to_dict() for match in player2_win]
+    matches = [match.to_dict() for match in player1_win] + [match.to_dict() for match in player2_win]
     return matches
 
 def get_all_matches():

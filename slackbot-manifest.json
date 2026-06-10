@@ -22,6 +22,11 @@
                 "command": "/delete-me",
                 "description": "Makes the current user inactive",
                 "should_escape": false
+            },
+            {
+                "command": "/my-stats",
+                "description": "Shows the current user's stats",
+                "should_escape": false
             }
         ]
     },
