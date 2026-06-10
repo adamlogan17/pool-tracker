@@ -3,7 +3,7 @@ from mongoengine.errors import NotUniqueError
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from pool_tracker.Player import Player
-from pool_tracker.utils import connect_db, inactivate_player, get_player_info
+from pool_tracker.utils import connect_db, get_leaderboard, inactivate_player, get_player_info
 import logging
 
 
@@ -39,7 +39,6 @@ def message_hello(message, say):
         ],
         text=f"Hey there <@{message['user']}>!",
     )
-
 
 @app.action("button_click")
 def action_button_click(body, ack, say):
@@ -77,7 +76,6 @@ def get_player_stats(ack, say, command):
     if not player_info:
         say(f"You have not yet registered for the pool tracker! Please use {add_command} to activate your account!")
     else:
-        say(f"{player_info}")
         say(
             blocks=[
                 {
@@ -126,6 +124,71 @@ def get_player_stats(ack, say, command):
             ]
         )
 
+
+@app.command("/leaderboard")
+def get_all_player_info(ack, say, command):
+    ack()
+    leaderboard = get_leaderboard()
+
+    rows = [[
+        {
+            "type": "raw_text",
+            "text": f"{i + 1}"
+        },
+        {
+            "type": "raw_text",
+            # Cannot find a way to '@' a user inside a table
+            "text": f"{player['name']}"
+        },
+        {
+            "type": "raw_text",
+            "text": f"{player['elo']}"
+        },
+        {
+            "type": "raw_text",
+            "text": f"{player['won_matches']}"
+        },
+        {
+            "type": "raw_text",
+            "text": f"{player['lost_matches']}"
+        }
+    ] for i, player in enumerate(leaderboard.values())]
+
+    rows.insert(
+        0, 
+        [
+            {
+                "type": "raw_text",
+                "text": "#"
+            },
+            {
+                "type": "raw_text",
+                "text": "Player"
+            },
+            {
+                "type": "raw_text",
+                "text": "Rating"
+            },
+            {
+                "type": "raw_text",
+                "text": "Matches Won"
+            },
+            {
+                "type": "raw_text",
+                "text": "Matches Lost"
+            }
+        ]
+    )
+
+    say(
+        blocks=[
+            {
+                "type": "data_table",
+                "caption": "Leaderboard",
+                "rows": rows
+            }
+        ]
+    )
 
 def start_app():
     logger.info(f"slack bot token: {os.environ.get("SLACK_BOT_TOKEN")}")

@@ -43,3 +43,22 @@ def get_all_matches():
     matches = Match.objects.order_by('match_time')
     all_matches = [match.to_dict() for match in matches]
     return all_matches
+
+def get_leaderboard():
+    players = Player.objects(active=True).order_by('-elo')
+    all_players = {}
+    for player in players:
+        player_as_dict = player.to_dict()
+        player_name = player_as_dict['id']
+        del player_as_dict['id']
+        player_as_dict['won_matches'] = 0
+        player_as_dict['lost_matches'] = 0
+        all_players[player_name] = player_as_dict
+
+    all_matches = get_all_matches()
+
+    for match in all_matches:
+        all_players[match['winning_player']['id']]['won_matches'] += 1
+        all_players[match['losing_player']['id']]['lost_matches'] += 1
+    
+    return all_players

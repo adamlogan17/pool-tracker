@@ -27,6 +27,11 @@
                 "command": "/my-stats",
                 "description": "Shows the current user's stats",
                 "should_escape": false
+            },
+            {
+                "command": "/leaderboard",
+                "description": "Shows the current leaderboard",
+                "should_escape": false
             }
         ]
     },
